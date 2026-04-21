@@ -16,7 +16,7 @@ slot_div    = 1.0     # Thin raised divider between die slots
 n_dice      = 4       # Dice per crits/normals tray
 
 # Section Y-depths
-slot_d      = 18.0    # Y-depth of each normals/crits tray
+slot_d      = 17.0    # Y-depth of each normals/crits tray (16mm dice + 0.5mm clearance each side)
 roll_cut_h  = 20.0    # Deep rolling arena cut depth
 base_h      = 25.0    # Total tray height (5mm floor under rolling cut)
 
@@ -24,14 +24,14 @@ base_h      = 25.0    # Total tray height (5mm floor under rolling cut)
 slot_cut_h  = 10.0    # Normals/crits die slots
 score_cut_h = 10.0    # Score strip die slots
 
-# --- Score strip (right side, extending beyond rolling area toward both ends) ---
-# Single column, 12 stacked 16mm slots:
+# --- Score strip (right side, aligned with outer dice rows) ---
+# Single column, 12 stacked 17mm slots (16mm dice + 0.5mm clearance each side):
 # P1 side (top): CP | TEAM | CRIT | TAC | KILL | TP/INI P1
 # P2 side (bot): TP/INI P2 | KILL | TAC | CRIT | TEAM | CP
 n_score      = 12
-score_slot_d = 16.0
+score_slot_d = 17.0    # 16mm dice + 0.5mm clearance each side (matches slot_d)
 score_full_depth = True
-score_edge_gap = 0.0   # No extra end gap: tray is only as long as score boxes require
+score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 
 # X layout: wall(4) + ledge(15) + dice(67) + label-gap(5) + score(16) + r_wall(3) = 110
 dice_w       = n_dice * die_slot_w + (n_dice - 1) * slot_div   # 4*16 + 3*1 = 67mm
@@ -43,14 +43,14 @@ score_strip_x = wall + label_ledge + dice_w + score_gap_w        # x = 91mm
 roll_w = label_ledge + dice_w   # 15 + 67 = 82mm (x=4..86)
 
 # Score-tracker span drives overall tray depth.
-# 12*16 + 11*1 = 203mm score span; + 2mm clearance each end; + 4mm walls each end.
+# 12*17 + 11*1 = 215mm score span; + 2*4mm walls = 223mm total.
 score_span_d = n_score * score_slot_d + (n_score - 1) * slot_div
-score_buffer = 2.0  # Safety margin at each end so score boxes don't touch walls
+score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 total_depth = score_span_d + (2 * score_buffer) + (2 * wall)
 
 # Rolling area depth is reduced to fit the new overall depth:
-# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 215 - 72 - 24 = 119mm
-roll_d = 119.0
+# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 223 - 68 - 24 = 131mm
+roll_d = 131.0
 
 # 1. Create the Main Body
 base = Part.makeBox(width, total_depth, base_h)
