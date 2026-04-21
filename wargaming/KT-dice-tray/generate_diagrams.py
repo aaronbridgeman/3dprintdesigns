@@ -57,6 +57,7 @@ if os.path.exists(macro_path):
     with open(macro_path) as _f:
         for _line in _f:
             for _pat, _key in [
+                (r"wall\s*=\s*([0-9.]+)",           "wall"),
                 (r"label_ledge\s*=\s*([0-9.]+)",   "label_ledge"),
                 (r"score_label_zone\s*=\s*([0-9.]+)",   "score_label_zone"),
                 (r"score_label_ledge\s*=\s*([0-9.]+)",   "score_label_ledge"),
