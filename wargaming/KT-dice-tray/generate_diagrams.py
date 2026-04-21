@@ -99,6 +99,11 @@ p2_x    = wall
 if has_score_rows:
     total_depth = (score_d * 2) + (slot_d * 4) + roll_d + (wall * 8)
     score_cut_w  = die_slot_w * 6 + slot_div * 5
+elif has_score_strip and score_full_depth:
+    # Score strip drives depth: 2*wall + score_span_d
+    score_span_d = n_score * score_slot_d + max(0, n_score - 1) * slot_div
+    total_depth = (2 * wall) + score_span_d
+    score_cut_w  = 0.0
 else:
     total_depth = (slot_d * 4) + roll_d + (wall * 6)
     score_cut_w  = 0.0

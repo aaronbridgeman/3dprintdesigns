@@ -6,8 +6,8 @@ doc = App.newDocument("DeepArenaDiceTray_v3")
 
 # --- Dimensions ---
 width       = 110.0   # Fixed width (X axis)
-wall        = 4.0     # Left outer wall
-right_wall  = 1.0     # Right outer wall (minimal for structural support)
+wall        = 2.5     # Outer walls (optimal for 3D printing durability)
+right_wall  = 2.5     # Right outer wall (consistent with left for structural integrity)
 label_ledge = 12.0    # P1-side label area for crit/normal (12mm zone)
 
 # Die slot geometry
@@ -43,14 +43,14 @@ score_strip_x = wall + label_ledge + dice_w + score_label_zone   # x = 93mm
 roll_w = label_ledge + dice_w   # 13 + 67 = 80mm (x=4..83)
 
 # Score-tracker span drives overall tray depth.
-# 12*17 + 11*1 = 215mm score span; + 2*4mm walls = 223mm total.
+# 12*17 + 11*1 = 215mm score span; + 2*2.5mm walls = 220mm total.
 score_span_d = n_score * score_slot_d + (n_score - 1) * slot_div
 score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 total_depth = score_span_d + (2 * score_buffer) + (2 * wall)
 
-# Rolling area depth is reduced to fit the new overall depth:
-# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 223 - 68 - 24 = 131mm
-roll_d = 131.0
+# Rolling area depth is optimized for the new overall depth:
+# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 220 - 68 - 15 = 137mm
+roll_d = 137.0
 
 # 1. Create the Main Body
 base = Part.makeBox(width, total_depth, base_h)
