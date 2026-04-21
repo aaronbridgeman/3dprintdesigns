@@ -157,7 +157,7 @@ if has_score_rows:
 if has_score_strip:
     for lbl, color in [("CRITS\n(P1)", "#c8e6c9"), ("NORMALS\n(P1)", "#bbdefb")]:
         cavities.append(dict(y=y, depth=slot_d, cut_h=slot_cut_h, label=lbl,
-                             color=color, x_start=p1_x, cut_w=dice_w, n_slots=n_dice))
+                             color=color, x_start=p1_x, cut_w=dice_w, n_slots=1))
         y += slot_d + wall
 else:
     for lbl, color in [("CRITS\n(P1)", "#c8e6c9"), ("NORMALS\n(P1)", "#bbdefb")]:
@@ -174,7 +174,7 @@ y += roll_d + wall
 if has_score_strip:
     for lbl, color in [("NORMALS\n(P2)", "#bbdefb"), ("CRITS\n(P2)", "#c8e6c9")]:
         cavities.append(dict(y=y, depth=slot_d, cut_h=slot_cut_h, label=lbl,
-                             color=color, x_start=p2_x, cut_w=dice_w, n_slots=n_dice))
+                             color=color, x_start=p2_x, cut_w=dice_w, n_slots=1))
         y += slot_d + wall
 else:
     for lbl, color in [("NORMALS\n(P2)", "#bbdefb"), ("CRITS\n(P2)", "#c8e6c9")]:

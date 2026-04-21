@@ -65,15 +65,12 @@ def _cut_box(x, y, z_from_top, bx, by, bz):
     cutout.translate(App.Vector(x, y, base_h - z_from_top + 0.01))
     base = base.cut(cutout)
 
-# --- Normals/crits tray: n_dice individual slots with dividers ---
+# --- Normals/crits tray: single contiguous pocket (no internal dividers) ---
 # P1 dice: label ledge on their left (x=4..23), dice from x=23
 # P2 dice: label ledge on their left = our right (x=91..110-3=107 is right wall)
 #          dice start from x=4, label on right side
 def cut_dice_row(y_pos, x_start):
-    x = x_start
-    for _ in range(n_dice):
-        _cut_box(x, y_pos, slot_cut_h, die_slot_w, slot_d, slot_cut_h)
-        x += die_slot_w + slot_div
+    _cut_box(x_start, y_pos, slot_cut_h, dice_w, slot_d, slot_cut_h)
 
 # --- Rolling area: left portion of the central zone ---
 def cut_rolling(y_pos):
