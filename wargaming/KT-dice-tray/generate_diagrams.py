@@ -38,6 +38,7 @@ base_h     = 25.0
 
 # ── Read optional overrides from the macro in the target folder ───────────────
 label_ledge   = 0.0
+score_label_ledge = 0.0  # label area on right side of score strip
 score_d       = 0.0    # >0 → old v3-style score rows at each end
 die_slot_w    = 16.0
 slot_div      = 1.0
@@ -56,6 +57,8 @@ if os.path.exists(macro_path):
         for _line in _f:
             for _pat, _key in [
                 (r"label_ledge\s*=\s*([0-9.]+)",   "label_ledge"),
+                (r"score_label_ledge\s*=\s*([0-9.]+)",   "score_label_ledge"),
+                (r"slot_d\s*=\s*([0-9.]+)",        "slot_d"),
                 (r"score_d\s*=\s*([0-9.]+)",       "score_d"),
                 (r"die_slot_w\s*=\s*([0-9.]+)",    "die_slot_w"),
                 (r"slot_div\s*=\s*([0-9.]+)",       "slot_div"),

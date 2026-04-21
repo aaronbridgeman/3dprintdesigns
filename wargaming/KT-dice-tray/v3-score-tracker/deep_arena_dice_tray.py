@@ -7,8 +7,8 @@ doc = App.newDocument("DeepArenaDiceTray_v3")
 # --- Dimensions ---
 width       = 110.0   # Fixed width (X axis)
 wall        = 4.0     # Left outer wall
-right_wall  = 3.0     # Right outer wall (thinner to fit score strip)
-label_ledge = 15.0    # P1-side ledge; reduced to preserve 110mm overall width
+right_wall  = 3.0     # Right outer wall
+label_ledge = 13.0    # P1-side label area (reduced from 15mm for more score label space)
 
 # Die slot geometry
 die_slot_w  = 16.0    # Each die slot width — fits 16mm dice
@@ -32,15 +32,16 @@ n_score      = 12
 score_slot_d = 17.0    # 16mm dice + 0.5mm clearance each side (matches slot_d)
 score_full_depth = True
 score_buffer = 0.0     # No buffer: crits rows align directly with score rows
+score_label_ledge = 4.0 # Label area on right side of score strip
 
-# X layout: wall(4) + ledge(15) + dice(67) + label-gap(5) + score(16) + r_wall(3) = 110
+# X layout: wall(4) + ledge(13) + dice(67) + gap(3) + score(16) + score_ledge(4) + r_wall(3) = 110
 dice_w       = n_dice * die_slot_w + (n_dice - 1) * slot_div   # 4*16 + 3*1 = 67mm
-score_gap_w  = 5.0   # Clearance between dice area and score strip for labels
-score_strip_x = wall + label_ledge + dice_w + score_gap_w        # x = 91mm
-# score strip occupies x=91..107, right wall x=107..110
+score_gap_w  = 3.0   # Clearance between dice area and score strip (reduced from 5)
+score_strip_x = wall + label_ledge + dice_w + score_gap_w        # x = 87mm
+# score strip occupies x=87..103, score label x=103..107, right wall x=107..110
 
-# Rolling area: from x=wall to just before the label clearance gap
-roll_w = label_ledge + dice_w   # 15 + 67 = 82mm (x=4..86)
+# Rolling area: from x=wall to just before the score gap
+roll_w = label_ledge + dice_w   # 13 + 67 = 80mm (x=4..83)
 
 # Score-tracker span drives overall tray depth.
 # 12*17 + 11*1 = 215mm score span; + 2*4mm walls = 223mm total.
