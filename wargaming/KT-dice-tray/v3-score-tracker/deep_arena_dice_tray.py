@@ -24,6 +24,9 @@ base_h      = 23.0    # Total tray height (3mm floor under rolling cut, optimize
 slot_cut_h  = 10.0    # Normals/crits die slots
 score_cut_h = 10.0    # Score strip die slots
 
+# Text labeling (optional)
+add_text    = False   # Set to True to add engraved reference text (recommended: manual labeling instead)
+
 # --- Score strip (right side, aligned with outer dice rows) ---
 # Single column, 12 stacked 17mm slots (16mm dice + 0.5mm clearance each side):
 # P1 side (top): CP | TEAM | CRIT | TAC | KILL | TP/INI P1
@@ -115,4 +118,25 @@ part_obj = doc.addObject("Part::Feature", "DeepArenaTray_v3")
 part_obj.Shape = base
 
 doc.recompute()
+
+# --- Optional: Add reference text labels (visual only, not engraved) ---
+if add_text:
+    from Draft import make_text
+    import Draft
+    
+    # P1 label on left side (in label ledge area)
+    text_p1 = make_text("P1", placement=App.Placement(App.Vector(6, 10, base_h), App.Rotation()))
+    text_p1.FontSize = 3.0
+    doc.addObject(text_p1)
+    
+    # P2 label on left side (in bottom label ledge)
+    text_p2 = make_text("P2", placement=App.Placement(App.Vector(6, 207, base_h), App.Rotation()))
+    text_p2.FontSize = 3.0
+    doc.addObject(text_p2)
+    
+    # Score strip label on right side
+    text_score = make_text("SCORE", placement=App.Placement(App.Vector(95, 8, base_h), App.Rotation()))
+    text_score.FontSize = 2.5
+    doc.addObject(text_score)
+
 Gui.SendMsgToActiveView("ViewFit")
