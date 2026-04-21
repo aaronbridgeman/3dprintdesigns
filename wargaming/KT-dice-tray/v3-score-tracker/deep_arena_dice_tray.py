@@ -145,8 +145,9 @@ def apply_accent_zones():
             outer_recess_d + label_zone_extra_d,
         )
 
-    # 4) P2 label zones (right-side side of the dice rows, mirrored near score label strip).
-    p2_label_x = score_strip_x - label_ledge
+    # 4) P2 label zones (to the right of the P2 dice trays, connected to the tray edge).
+    p2_dice_x = wall
+    p2_label_x = p2_dice_x + dice_w
     for y_pos in (p2_normals_y, p2_crits_y):
         _top_recess(
             p2_label_x,
