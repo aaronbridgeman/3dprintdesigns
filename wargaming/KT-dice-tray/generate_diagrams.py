@@ -34,7 +34,7 @@ slot_d     = 18.0
 roll_d     = 100.0
 slot_cut_h = 10.0
 roll_cut_h = 20.0
-base_h     = 25.0
+base_h     = 23.0
 
 # ── Read optional overrides from the macro in the target folder ───────────────
 label_ledge   = 0.0
@@ -58,6 +58,7 @@ if os.path.exists(macro_path):
         for _line in _f:
             for _pat, _key in [
                 (r"wall\s*=\s*([0-9.]+)",           "wall"),
+                (r"base_h\s*=\s*([0-9.]+)",         "base_h"),
                 (r"label_ledge\s*=\s*([0-9.]+)",   "label_ledge"),
                 (r"score_label_zone\s*=\s*([0-9.]+)",   "score_label_zone"),
                 (r"score_label_ledge\s*=\s*([0-9.]+)",   "score_label_ledge"),

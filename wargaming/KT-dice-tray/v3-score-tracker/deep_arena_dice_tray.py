@@ -18,7 +18,7 @@ n_dice      = 4       # Dice per crits/normals tray
 # Section Y-depths
 slot_d      = 17.0    # Y-depth of each normals/crits tray (16mm dice + 0.5mm clearance each side)
 roll_cut_h  = 20.0    # Deep rolling arena cut depth
-base_h      = 25.0    # Total tray height (5mm floor under rolling cut)
+base_h      = 23.0    # Total tray height (3mm floor under rolling cut, optimized for material savings)
 
 # Cut heights (Z, downward from top)
 slot_cut_h  = 10.0    # Normals/crits die slots
