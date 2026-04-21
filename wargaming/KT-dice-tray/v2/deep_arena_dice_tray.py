@@ -11,7 +11,7 @@ roll_d = 100.0     # Expanded central rolling area depth
 wall = 4.0         # Wall/Divider thickness
 
 # Label ledge: flat top-surface strip left for engraved/written labels
-label_ledge = 20.0  # Width of the label strip per player side
+label_ledge = 10.0  # Width of the label strip per player side
 
 # Depth of the floor cuts
 slot_cut_h = 10.0  # Trench floor depth
