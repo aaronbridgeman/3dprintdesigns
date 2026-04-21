@@ -38,7 +38,8 @@ base_h     = 25.0
 
 # ── Read optional overrides from the macro in the target folder ───────────────
 label_ledge   = 0.0
-score_label_ledge = 0.0  # label area on right side of score strip
+score_label_zone = 0.0  # unified label area between dice and score tracker
+score_label_ledge = 0.0  # (deprecated - kept for backwards compatibility)
 score_d       = 0.0    # >0 → old v3-style score rows at each end
 die_slot_w    = 16.0
 slot_div      = 1.0
@@ -57,6 +58,7 @@ if os.path.exists(macro_path):
         for _line in _f:
             for _pat, _key in [
                 (r"label_ledge\s*=\s*([0-9.]+)",   "label_ledge"),
+                (r"score_label_zone\s*=\s*([0-9.]+)",   "score_label_zone"),
                 (r"score_label_ledge\s*=\s*([0-9.]+)",   "score_label_ledge"),
                 (r"slot_d\s*=\s*([0-9.]+)",        "slot_d"),
                 (r"score_d\s*=\s*([0-9.]+)",       "score_d"),
@@ -102,9 +104,11 @@ else:
     score_cut_w  = 0.0
 
 # Score strip geometry (single-column symmetric, new v3)
-# strip_div_w separates dice area from score column
+# score_label_zone is the space between rolling area and score boxes for labels
 if has_score_strip:
-    score_strip_x = wall + label_ledge + dice_w + score_gap_w
+    # Use score_label_zone if present, otherwise fall back to score_gap_w
+    label_zone = score_label_zone if score_label_zone > 0 else score_gap_w
+    score_strip_x = wall + label_ledge + dice_w + label_zone
     roll_w        = label_ledge + dice_w   # rolling area X-width
 else:
     score_strip_x = 0.0
