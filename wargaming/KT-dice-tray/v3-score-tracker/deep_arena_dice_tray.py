@@ -32,6 +32,7 @@ add_accent_zones    = True
 outer_border_w      = 1.0    # Raised outer rim width
 outer_recess_d      = 1.0    # Recess depth inside outer rim
 label_zone_extra_d  = 0.5    # Extra recess in label zones so they can be a second accent color
+score_label_clearance = 1.0  # Keep score-label recess 1mm clear of neighboring features on each side
 
 # Exterior finishing
 outer_corner_radius = 1.5    # Small fillet on outer vertical corners
@@ -125,15 +126,18 @@ def apply_accent_zones():
     p2_normals_y = roll_y + roll_d + wall
     p2_crits_y = p2_normals_y + slot_d + wall
 
-    # 2) Score label accent zone (full interior depth, between dice area and score strip).
+    # 2) Score label accent zone with side clearances from dice and score boxes.
     score_label_x = score_strip_x - score_label_zone
-    _top_recess(
-        score_label_x,
-        wall,
-        score_label_zone,
-        total_depth - (2 * wall),
-        outer_recess_d + label_zone_extra_d,
-    )
+    score_label_recess_x = score_label_x + score_label_clearance
+    score_label_recess_w = score_label_zone - (2 * score_label_clearance)
+    if score_label_recess_w > 0:
+        _top_recess(
+            score_label_recess_x,
+            wall,
+            score_label_recess_w,
+            total_depth - (2 * wall),
+            outer_recess_d + label_zone_extra_d,
+        )
 
     # 3) P1 label zones (left side, both crit/normal rows).
     for y_pos in (p1_crits_y, p1_normals_y):
