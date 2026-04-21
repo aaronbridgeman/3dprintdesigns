@@ -27,6 +27,15 @@ score_cut_h = 10.0    # Score strip die slots
 # Text labeling (optional)
 add_text    = False   # Set to True to add engraved reference text (recommended: manual labeling instead)
 
+# Accent zones for color filling (optional)
+add_accent_zones    = True
+outer_border_w      = 1.0    # Raised outer rim width
+outer_recess_d      = 1.0    # Recess depth inside outer rim
+label_zone_extra_d  = 0.5    # Extra recess in label zones so they can be a second accent color
+
+# Exterior finishing
+outer_corner_radius = 1.5    # Small fillet on outer vertical corners
+
 # --- Score strip (right side, aligned with outer dice rows) ---
 # Single column, 12 stacked 17mm slots (16mm dice + 0.5mm clearance each side):
 # P1 side (top): CP | TEAM | CRIT | TAC | KILL | TP/INI P1
@@ -37,13 +46,13 @@ score_full_depth = True
 score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 score_label_zone = 10.0 # Unified label area between dice and score tracker
 
-# X layout: wall(4) + ledge(13) + dice(67) + gap(3) + score(16) + score_ledge(4) + r_wall(3) = 110
+# X layout: wall(2.5) + ledge(12) + dice(67) + score_label_zone(10) + score(16) + r_wall(2.5) = 110
 dice_w       = n_dice * die_slot_w + (n_dice - 1) * slot_div   # 4*16 + 3*1 = 67mm
 score_strip_x = wall + label_ledge + dice_w + score_label_zone   # x = 93mm
 # score strip occupies x=93..109, right wall x=109..110
 
 # Rolling area: from x=wall to just before the score label zone
-roll_w = label_ledge + dice_w   # 13 + 67 = 80mm (x=4..83)
+roll_w = label_ledge + dice_w   # 12 + 67 = 79mm
 
 # Score-tracker span drives overall tray depth.
 # 12*17 + 11*1 = 215mm score span; + 2*2.5mm walls = 220mm total.
@@ -58,12 +67,94 @@ roll_d = 137.0
 # 1. Create the Main Body
 base = Part.makeBox(width, total_depth, base_h)
 
+
+def apply_outer_corner_rounding():
+    global base
+    if outer_corner_radius <= 0:
+        return
+
+    tol = 1e-6
+    outer_vertical_edges = []
+
+    for edge in base.Edges:
+        v1 = edge.Vertexes[0].Point
+        v2 = edge.Vertexes[1].Point
+
+        # Vertical edge: same x/y, spans full body height in z.
+        is_vertical = (abs(v1.x - v2.x) < tol) and (abs(v1.y - v2.y) < tol) and (abs(abs(v1.z - v2.z) - base_h) < tol)
+        if not is_vertical:
+            continue
+
+        x_ok = (abs(v1.x - 0.0) < tol) or (abs(v1.x - width) < tol)
+        y_ok = (abs(v1.y - 0.0) < tol) or (abs(v1.y - total_depth) < tol)
+        if x_ok and y_ok:
+            outer_vertical_edges.append(edge)
+
+    if outer_vertical_edges:
+        base = base.makeFillet(outer_corner_radius, outer_vertical_edges)
+
 # --- Helper: cut a single rectangular box from the top ---
 def _cut_box(x, y, z_from_top, bx, by, bz):
     global base
     cutout = Part.makeBox(bx, by, bz)
     cutout.translate(App.Vector(x, y, base_h - z_from_top + 0.01))
     base = base.cut(cutout)
+
+
+def _top_recess(x, y, bx, by, depth):
+    _cut_box(x, y, depth, bx, by, depth)
+
+
+def apply_accent_zones():
+    if not add_accent_zones:
+        return
+
+    # 1) Outer accent border: recess the full interior from the top, leaving a 1mm raised perimeter.
+    _top_recess(
+        outer_border_w,
+        outer_border_w,
+        width - (2 * outer_border_w),
+        total_depth - (2 * outer_border_w),
+        outer_recess_d,
+    )
+
+    # Row anchors (Y) for label-zone accents.
+    p1_crits_y = wall
+    p1_normals_y = p1_crits_y + slot_d + wall
+    roll_y = p1_normals_y + slot_d + wall
+    p2_normals_y = roll_y + roll_d + wall
+    p2_crits_y = p2_normals_y + slot_d + wall
+
+    # 2) Score label accent zone (full interior depth, between dice area and score strip).
+    score_label_x = score_strip_x - score_label_zone
+    _top_recess(
+        score_label_x,
+        wall,
+        score_label_zone,
+        total_depth - (2 * wall),
+        outer_recess_d + label_zone_extra_d,
+    )
+
+    # 3) P1 label zones (left side, both crit/normal rows).
+    for y_pos in (p1_crits_y, p1_normals_y):
+        _top_recess(
+            wall,
+            y_pos,
+            label_ledge,
+            slot_d,
+            outer_recess_d + label_zone_extra_d,
+        )
+
+    # 4) P2 label zones (right-side side of the dice rows, mirrored near score label strip).
+    p2_label_x = score_strip_x - label_ledge
+    for y_pos in (p2_normals_y, p2_crits_y):
+        _top_recess(
+            p2_label_x,
+            y_pos,
+            label_ledge,
+            slot_d,
+            outer_recess_d + label_zone_extra_d,
+        )
 
 # --- Normals/crits tray: single contiguous pocket (no internal dividers) ---
 # P1 dice: label ledge on their left (x=4..23), dice from x=23
@@ -91,6 +182,9 @@ def cut_score_strip_full_depth():
 # 2. Apply all cuts (Y: P1 end -> P2 end)
 p1_dice_x = wall + label_ledge   # x=23, ledge on P1's left
 p2_dice_x = wall                 # x=4,  ledge on P2's right (our right)
+
+apply_outer_corner_rounding()
+apply_accent_zones()
 
 current_y = wall
 

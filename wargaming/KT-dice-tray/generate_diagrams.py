@@ -51,6 +51,7 @@ score_slot_d  = 16.0   # Y-depth of each score slot
 score_gap_w   = 1.0
 score_full_depth = 0
 score_buffer   = 0.0
+outer_corner_radius = 0.0
 
 macro_path = os.path.join(OUT_DIR, "deep_arena_dice_tray.py")
 if os.path.exists(macro_path):
@@ -74,6 +75,7 @@ if os.path.exists(macro_path):
                 (r"score_gap_w\s*=\s*([0-9.]+)",    "score_gap_w"),
                 (r"score_full_depth\s*=\s*(True|False)", "score_full_depth"),
                 (r"score_buffer\s*=\s*([0-9.]+)",   "score_buffer"),
+                (r"outer_corner_radius\s*=\s*([0-9.]+)", "outer_corner_radius"),
             ]:
                 _m = re.match(r"^\s*" + _pat, _line)
                 if _m:
@@ -212,9 +214,29 @@ ax.set_xlabel("Width  (mm)")
 ax.set_ylabel("Depth  (mm)")
 ax.tick_params(labelsize=8)
 
-body = mpatches.Rectangle((0, 0), width, total_depth,
-                           linewidth=1.5, edgecolor="black", facecolor="#f5f5f5", zorder=1)
+rounding = max(0.0, min(float(outer_corner_radius), width / 2.0, total_depth / 2.0))
+if rounding > 0:
+    body = mpatches.FancyBboxPatch(
+        (0, 0), width, total_depth,
+        boxstyle=f"round,pad=0,rounding_size={rounding}",
+        linewidth=1.5, edgecolor="black", facecolor="#f5f5f5", zorder=1
+    )
+else:
+    body = mpatches.Rectangle((0, 0), width, total_depth,
+                              linewidth=1.5, edgecolor="black", facecolor="#f5f5f5", zorder=1)
 ax.add_patch(body)
+
+if rounding > 0:
+    # Radius note so subtle fillets are still clear in the technical drawing.
+    ax.annotate(
+        f"R{rounding:.1f}",
+        xy=(rounding, total_depth),
+        xytext=(rounding + 10, total_depth - 12),
+        fontsize=7,
+        color="dimgray",
+        bbox=dict(fc="white", ec="none", pad=1),
+        arrowprops=dict(arrowstyle="->", color="dimgray", lw=1),
+    )
 
 for c in cavities:
     rect = mpatches.Rectangle((c["x_start"], c["y"]), c["cut_w"], c["depth"],
