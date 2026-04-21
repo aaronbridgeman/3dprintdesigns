@@ -24,13 +24,14 @@ base_h      = 25.0    # Total tray height (5mm floor under rolling cut)
 slot_cut_h  = 10.0    # Normals/crits die slots
 score_cut_h = 10.0    # Score strip die slots
 
-# --- Score strip (right side, running the full Y depth of the tray interior) ---
-# Single column, 11 symmetric slots:
-# P1 side (top): CP | TEAM | CRIT | TAC | KILL
-# Centre:        TP/INI split into two adjacent boxes (P1 and P2)
-# P2 side (bot): KILL | TAC | CRIT | TEAM | CP
-n_score     = 11
+# --- Score strip (right side, extending beyond rolling area toward both ends) ---
+# Single column, 12 stacked 16mm slots:
+# P1 side (top): CP | TEAM | CRIT | TAC | KILL | TP/INI P1
+# P2 side (bot): TP/INI P2 | KILL | TAC | CRIT | TEAM | CP
+n_score      = 12
+score_slot_d = 16.0
 score_full_depth = True
+score_edge_gap = 0.0   # No extra end gap: tray is only as long as score boxes require
 
 # X layout: wall(4) + ledge(15) + dice(67) + label-gap(5) + score(16) + r_wall(3) = 110
 dice_w       = n_dice * die_slot_w + (n_dice - 1) * slot_div   # 4*16 + 3*1 = 67mm
@@ -41,13 +42,15 @@ score_strip_x = wall + label_ledge + dice_w + score_gap_w        # x = 91mm
 # Rolling area: from x=wall to just before the label clearance gap
 roll_w = label_ledge + dice_w   # 15 + 67 = 82mm (x=4..86)
 
-# Total Y-depth of rolling area (unchanged central arena)
-roll_d = 186.0
+# Score-tracker span drives overall tray depth.
+# 12*16 + 11*1 = 203mm score span; + 2mm clearance each end; + 4mm walls each end.
+score_span_d = n_score * score_slot_d + (n_score - 1) * slot_div
+score_buffer = 2.0  # Safety margin at each end so score boxes don't touch walls
+total_depth = score_span_d + (2 * score_buffer) + (2 * wall)
 
-# --- Total Depth ---
-# 4 dice rows + rolling area + 6 walls
-# (18*4) + 186 + (4*6) = 72 + 186 + 24 = 282mm
-total_depth = (slot_d * 4) + roll_d + (wall * 6)
+# Rolling area depth is reduced to fit the new overall depth:
+# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 215 - 72 - 24 = 119mm
+roll_d = 119.0
 
 # 1. Create the Main Body
 base = Part.makeBox(width, total_depth, base_h)
@@ -77,22 +80,12 @@ def cut_rolling(y_pos):
 # Symmetric layout (Y order, P1 end at top):
 # CP, TEAM, CRIT, TAC, KILL, TP/INI, KILL, TAC, CRIT, TEAM, CP
 def cut_score_strip_full_depth():
-    # Runs from inside top wall to inside bottom wall.
-    score_start_y = wall
-    score_span_d = total_depth - (2 * wall)
-    score_slot_d = (score_span_d - (n_score - 1) * slot_div) / n_score
-
-    # Middle row is split into two adjacent TP/INI boxes (P1 and P2).
-    mid_idx = n_score // 2
-    split_w = (die_slot_w - slot_div) / 2
+    # Keep each score box at 16mm and add buffer space from each end wall.
+    score_start_y = wall + score_buffer
 
     y = score_start_y
-    for i in range(n_score):
-        if i == mid_idx:
-            _cut_box(score_strip_x, y, score_cut_h, split_w, score_slot_d, score_cut_h)
-            _cut_box(score_strip_x + split_w + slot_div, y, score_cut_h, split_w, score_slot_d, score_cut_h)
-        else:
-            _cut_box(score_strip_x, y, score_cut_h, die_slot_w, score_slot_d, score_cut_h)
+    for _ in range(n_score):
+        _cut_box(score_strip_x, y, score_cut_h, die_slot_w, score_slot_d, score_cut_h)
         y += score_slot_d + slot_div
 
 # 2. Apply all cuts (Y: P1 end -> P2 end)

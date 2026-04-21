@@ -48,6 +48,7 @@ roll_d        = 100.0
 score_slot_d  = 16.0   # Y-depth of each score slot
 score_gap_w   = 1.0
 score_full_depth = 0
+score_buffer   = 0.0
 
 macro_path = os.path.join(OUT_DIR, "deep_arena_dice_tray.py")
 if os.path.exists(macro_path):
@@ -65,6 +66,7 @@ if os.path.exists(macro_path):
                 (r"score_slot_d\s*=\s*([0-9.]+)",   "score_slot_d"),
                 (r"score_gap_w\s*=\s*([0-9.]+)",    "score_gap_w"),
                 (r"score_full_depth\s*=\s*(True|False)", "score_full_depth"),
+                (r"score_buffer\s*=\s*([0-9.]+)",   "score_buffer"),
             ]:
                 _m = re.match(r"^\s*" + _pat, _line)
                 if _m:
@@ -106,22 +108,19 @@ else:
     roll_w        = width - wall * 2
 
 if has_score_strip and score_full_depth:
-    score_start_y = wall
-    score_span_d = total_depth - 2 * wall
-    score_slot_d = (score_span_d - max(0, n_score - 1) * slot_div) / max(1, n_score)
-else:
-    score_start_y = 0.0
+    score_span_d = n_score * score_slot_d + max(0, n_score - 1) * slot_div
+    score_start_y = wall + score_buffer
     score_span_d = 0.0
 
-# ── Score category labels (symmetric, P1 top → P2 bottom) ────────────────────
-# CP | TEAM | CRIT | TAC | KILL | TP/INI | KILL | TAC | CRIT | TEAM | CP
-SCORE_LABELS_SYM = ["CP", "TEAM", "CRIT", "TAC", "KILL", "TP/INI",
-                    "KILL", "TAC", "CRIT", "TEAM", "CP"]
-# Colours: outer (P1/P2 own) = green, shared centre = purple, mirror = pink
+# ── Score category labels (P1 top → P2 bottom) ───────────────────────────────
+# CP | TEAM | CRIT | TAC | KILL | TP/INI P1 | TP/INI P2 | KILL | TAC | CRIT | TEAM | CP
+SCORE_LABELS_SYM = [
+    "CP", "TEAM", "CRIT", "TAC", "KILL", "TP/INI P1",
+    "TP/INI P2", "KILL", "TAC", "CRIT", "TEAM", "CP"
+]
 _sym_colors = [
-    "#a5d6a7", "#81c784", "#66bb6a", "#4caf50", "#388e3c",   # P1 side
-    "#ce93d8",                                                  # TP/INI centre
-    "#e57373", "#ef9a9a", "#f48fb1", "#f8bbd0", "#fce4ec",   # P2 side (mirror)
+    "#a5d6a7", "#81c784", "#66bb6a", "#4caf50", "#388e3c", "#ce93d8",
+    "#e1bee7", "#e57373", "#ef9a9a", "#f48fb1", "#f8bbd0", "#fce4ec",
 ]
 
 # ── Shared helper ─────────────────────────────────────────────────────────────
@@ -228,34 +227,15 @@ for c in cavities:
 if has_score_strip:
     sy = score_start_y if score_full_depth else roll_start_y
     labels = SCORE_LABELS_SYM[:n_score]
-    mid_idx = len(labels) // 2
-    split_w = (die_slot_w - slot_div) / 2
     for i, lbl in enumerate(labels):
         color = _sym_colors[i] if i < len(_sym_colors) else "#e0e0e0"
-        if i == mid_idx:
-            left_rect = mpatches.Rectangle((score_strip_x, sy), split_w, score_slot_d,
-                                           linewidth=0.8, edgecolor="#555",
-                                           facecolor="#ce93d8", zorder=3)
-            right_rect = mpatches.Rectangle((score_strip_x + split_w + slot_div, sy),
-                                            split_w, score_slot_d,
-                                            linewidth=0.8, edgecolor="#555",
-                                            facecolor="#e1bee7", zorder=3)
-            ax.add_patch(left_rect)
-            ax.add_patch(right_rect)
-            ax.text(score_strip_x + split_w / 2, sy + score_slot_d / 2,
-                    "TP P1", ha="center", va="center", fontsize=4.5,
-                    fontweight="bold", color="#222", rotation=90)
-            ax.text(score_strip_x + split_w + slot_div + split_w / 2, sy + score_slot_d / 2,
-                    "TP P2", ha="center", va="center", fontsize=4.5,
-                    fontweight="bold", color="#222", rotation=90)
-        else:
-            slot_rect = mpatches.Rectangle((score_strip_x, sy), die_slot_w, score_slot_d,
-                                            linewidth=0.8, edgecolor="#555",
-                                            facecolor=color, zorder=3)
-            ax.add_patch(slot_rect)
-            ax.text(score_strip_x + die_slot_w / 2, sy + score_slot_d / 2,
-                    lbl, ha="center", va="center", fontsize=5.5,
-                    fontweight="bold", color="#222", rotation=90)
+        slot_rect = mpatches.Rectangle((score_strip_x, sy), die_slot_w, score_slot_d,
+                        linewidth=0.8, edgecolor="#555",
+                        facecolor=color, zorder=3)
+        ax.add_patch(slot_rect)
+        ax.text(score_strip_x + die_slot_w / 2, sy + score_slot_d / 2,
+            lbl, ha="center", va="center", fontsize=5.2,
+            fontweight="bold", color="#222", rotation=90)
         sy += score_slot_d + slot_div
 
     # Score strip outline
