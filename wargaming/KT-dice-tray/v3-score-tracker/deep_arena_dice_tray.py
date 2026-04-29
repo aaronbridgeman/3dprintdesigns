@@ -1,8 +1,9 @@
 import FreeCAD as App
 import Part
+import os
 
 # Create a new document
-doc = App.newDocument("DeepArenaDiceTray_v3")
+doc = App.newDocument("KillTeamDiceTrayAndScoreTracker_v3")
 
 # --- Dimensions ---
 width       = 110.0   # Fixed width (X axis)
@@ -24,8 +25,22 @@ base_h      = 23.0    # Total tray height (3mm floor under rolling cut, optimize
 slot_cut_h  = 10.0    # Normals/crits die slots
 score_cut_h = 10.0    # Score strip die slots
 
-# Text labeling (optional)
-add_text    = False   # Set to True to add engraved reference text (recommended: manual labeling instead)
+# Parametric label text (optional, printable geometry)
+add_parametric_labels = True
+
+# Text is built inside recessed label zones and raised back up for accent-color printing.
+text_font_size_tray = 5.0
+text_font_size_score = 4.0
+text_raise_h = 1.5        # Raise text from recessed label zones (1.5mm returns to top plane)
+text_padding_x = 0.8      # Keep text clear of zone side walls
+text_padding_y = 0.8      # Keep text clear of zone top/bottom walls
+
+# macOS default candidates; first existing path is used.
+text_font_candidates = [
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+]
 
 # Accent zones for color filling (optional)
 add_accent_zones    = True
@@ -104,6 +119,162 @@ def _cut_box(x, y, z_from_top, bx, by, bz):
 
 def _top_recess(x, y, bx, by, depth):
     _cut_box(x, y, depth, bx, by, depth)
+
+
+def _resolve_font_path():
+    for font_path in text_font_candidates:
+        if os.path.exists(font_path):
+            return font_path
+    return None
+
+
+def _make_shapestring_shape(text, size, rotation_deg, font_path):
+    # Import Draft lazily so geometry still builds when text is disabled.
+    import Draft
+
+    ss = Draft.make_shapestring(String=text, FontFile=font_path, Size=size, Tracking=0.0)
+    ss.Placement = App.Placement(
+        App.Vector(0, 0, 0),
+        App.Rotation(App.Vector(0, 0, 1), rotation_deg),
+    )
+    doc.recompute()
+
+    shape = ss.Shape.copy()
+    doc.removeObject(ss.Name)
+
+    return shape
+
+
+def _build_fitted_text_solid(text, zone_x, zone_y, zone_w, zone_h, z, max_size, rotation_deg, raise_h, font_path):
+    if zone_w <= 0 or zone_h <= 0:
+        return None
+
+    # 1) Build at max size and measure real glyph bounds.
+    shape = _make_shapestring_shape(text, max_size, rotation_deg, font_path)
+    bb = shape.BoundBox
+    if bb.XLength <= 0 or bb.YLength <= 0:
+        return None
+
+    avail_w = max(zone_w - (2 * text_padding_x), 0.1)
+    avail_h = max(zone_h - (2 * text_padding_y), 0.1)
+    fit_scale = min(1.0, avail_w / bb.XLength, avail_h / bb.YLength)
+
+    # 2) Rebuild at fitted size for cleaner edges.
+    if fit_scale < 1.0:
+        fitted_size = max_size * fit_scale
+        shape = _make_shapestring_shape(text, fitted_size, rotation_deg, font_path)
+        bb = shape.BoundBox
+
+    # 3) Center the text shape inside the target zone.
+    tx = zone_x + (zone_w - bb.XLength) / 2.0 - bb.XMin
+    ty = zone_y + (zone_h - bb.YLength) / 2.0 - bb.YMin
+    shape.translate(App.Vector(tx, ty, z))
+
+    faces = list(shape.Faces)
+
+    if not faces:
+        return None
+
+    solids = [face.extrude(App.Vector(0, 0, raise_h)) for face in faces]
+    return Part.makeCompound(solids)
+
+
+def apply_parametric_labels():
+    global base
+
+    if not add_parametric_labels:
+        return
+
+    font_path = _resolve_font_path()
+    if not font_path:
+        App.Console.PrintWarning("No valid font file found for parametric labels; skipping text geometry.\n")
+        return
+
+    # Row anchors (Y) reused for label placement.
+    p1_crits_y = wall
+    p1_normals_y = p1_crits_y + slot_d + wall
+    roll_y = p1_normals_y + slot_d + wall
+    p2_normals_y = roll_y + roll_d + wall
+    p2_crits_y = p2_normals_y + slot_d + wall
+
+    # Top level of the recessed label zones.
+    label_zone_top_z = base_h - (outer_recess_d + label_zone_extra_d)
+
+    # P1 tray labels (left label ledge, top rows).
+    p1_label_x = wall
+    p1_specs = [
+        ("CRIT", p1_crits_y),
+        ("NORM", p1_normals_y),
+    ]
+    for text, y_pos in p1_specs:
+        solid = _build_fitted_text_solid(
+            text=text,
+            zone_x=p1_label_x,
+            zone_y=y_pos,
+            zone_w=label_ledge,
+            zone_h=slot_d,
+            z=label_zone_top_z,
+            max_size=text_font_size_tray,
+            rotation_deg=-90.0,
+            raise_h=text_raise_h,
+            font_path=font_path,
+        )
+        if solid is not None:
+            base = base.fuse(solid)
+
+    # P2 tray labels (right side of P2 rows, connected to P2 tray edge).
+    p2_label_x = wall + dice_w
+    p2_specs = [
+        ("NORM", p2_normals_y),
+        ("CRIT", p2_crits_y),
+    ]
+    for text, y_pos in p2_specs:
+        solid = _build_fitted_text_solid(
+            text=text,
+            zone_x=p2_label_x,
+            zone_y=y_pos,
+            zone_w=label_ledge,
+            zone_h=slot_d,
+            z=label_zone_top_z,
+            max_size=text_font_size_tray,
+            rotation_deg=-90.0,
+            raise_h=text_raise_h,
+            font_path=font_path,
+        )
+        if solid is not None:
+            base = base.fuse(solid)
+
+    # Score-label text: one label per score box in the score-label zone.
+    score_label_x = score_strip_x - score_label_zone
+    score_label_recess_x = score_label_x + score_label_clearance
+    score_label_recess_w = score_label_zone - (2 * score_label_clearance)
+    if score_label_recess_w <= 0:
+        return
+
+    score_labels = [
+        "CP", "TEAM", "CRIT", "TAC", "KILL", "TP/INI",
+        "TP/INI", "KILL", "TAC", "CRIT", "TEAM", "CP",
+    ]
+    score_label_z = label_zone_top_z
+    y_pos = wall + score_buffer
+
+    for i in range(min(n_score, len(score_labels))):
+        text = score_labels[i]
+        solid = _build_fitted_text_solid(
+            text=text,
+            zone_x=score_label_recess_x,
+            zone_y=y_pos,
+            zone_w=score_label_recess_w,
+            zone_h=score_slot_d,
+            z=score_label_z,
+            max_size=text_font_size_score,
+            rotation_deg=-90.0,
+            raise_h=text_raise_h,
+            font_path=font_path,
+        )
+        if solid is not None:
+            base = base.fuse(solid)
+        y_pos += score_slot_d + slot_div
 
 
 def apply_accent_zones():
@@ -209,30 +380,12 @@ current_y += slot_d + wall
 
 cut_dice_row(current_y, p2_dice_x)    # P2 CRITS
 
+apply_parametric_labels()
+
 # 3. Add to document
-part_obj = doc.addObject("Part::Feature", "DeepArenaTray_v3")
+part_obj = doc.addObject("Part::Feature", "KillTeamDiceTrayAndScoreTracker_v3")
 part_obj.Shape = base
 
 doc.recompute()
-
-# --- Optional: Add reference text labels (visual only, not engraved) ---
-if add_text:
-    from Draft import make_text
-    import Draft
-    
-    # P1 label on left side (in label ledge area)
-    text_p1 = make_text("P1", placement=App.Placement(App.Vector(6, 10, base_h), App.Rotation()))
-    text_p1.FontSize = 3.0
-    doc.addObject(text_p1)
-    
-    # P2 label on left side (in bottom label ledge)
-    text_p2 = make_text("P2", placement=App.Placement(App.Vector(6, 207, base_h), App.Rotation()))
-    text_p2.FontSize = 3.0
-    doc.addObject(text_p2)
-    
-    # Score strip label on right side
-    text_score = make_text("SCORE", placement=App.Placement(App.Vector(95, 8, base_h), App.Rotation()))
-    text_score.FontSize = 2.5
-    doc.addObject(text_score)
 
 Gui.SendMsgToActiveView("ViewFit")

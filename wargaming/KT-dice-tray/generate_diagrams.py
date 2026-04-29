@@ -1,5 +1,5 @@
 """
-Technical diagram generator for the Deep Arena Dice Tray.
+Technical diagram generator for the Kill Team Dice Tray and Score Tracker.
 Run this script to produce PNG diagrams for a given version folder.
 
 Usage:
@@ -209,7 +209,7 @@ fig, ax = plt.subplots(figsize=(9, 16))
 ax.set_xlim(-10, width + 40)
 ax.set_ylim(-12, total_depth + 22)
 ax.set_aspect("equal")
-ax.set_title("Deep Arena Dice Tray — Top View (Plan)", fontsize=13, fontweight="bold", pad=12)
+ax.set_title("Kill Team Dice Tray and Score Tracker — Top View (Plan)", fontsize=13, fontweight="bold", pad=12)
 ax.set_xlabel("Width  (mm)")
 ax.set_ylabel("Depth  (mm)")
 ax.tick_params(labelsize=8)
@@ -322,7 +322,7 @@ fig, ax = plt.subplots(figsize=(fig_w, 6))
 ax.set_xlim(-10, total_depth + 28)
 ax.set_ylim(-5, base_h + 18)
 ax.set_aspect("equal")
-ax.set_title("Deep Arena Dice Tray — Longitudinal Cross-Section (Side View)",
+ax.set_title("Kill Team Dice Tray and Score Tracker — Longitudinal Cross-Section (Side View)",
              fontsize=13, fontweight="bold", pad=12)
 ax.set_xlabel("Depth along tray  (mm)")
 ax.set_ylabel("Height  (mm)")
@@ -385,7 +385,7 @@ fig, ax = plt.subplots(figsize=(8, 7))
 ax.set_xlim(-12, width + 20)
 ax.set_ylim(-5, base_h + 38)
 ax.set_aspect("equal")
-ax.set_title("Deep Arena Dice Tray — End Cross-Section", fontsize=11, fontweight="bold", pad=10)
+ax.set_title("Kill Team Dice Tray and Score Tracker — End Cross-Section", fontsize=11, fontweight="bold", pad=10)
 ax.set_xlabel("Width  (mm)")
 ax.set_ylabel("Height  (mm)")
 ax.tick_params(labelsize=8)
