@@ -22,10 +22,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_OUTPUT_DIR = os.path.join(SCRIPT_DIR, "score-tracker")
+
 if len(sys.argv) > 1:
     OUT_DIR = os.path.abspath(sys.argv[1])
 else:
-    OUT_DIR = os.path.dirname(os.path.abspath(__file__))
+    OUT_DIR = DEFAULT_OUTPUT_DIR if os.path.isdir(DEFAULT_OUTPUT_DIR) else SCRIPT_DIR
 
 # ── Base dimensions (fixed across all versions) ───────────────────────────────
 width      = 110.0
@@ -53,11 +56,11 @@ score_full_depth = 0
 score_buffer   = 0.0
 outer_corner_radius = 0.0
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 macro_candidates = [
-    # Canonical source location (preferred).
+    # Canonical source location (preferred): active score-tracker folder.
+    os.path.join(SCRIPT_DIR, "score-tracker", "kill_team_dice_tray_and_score_tracker.py"),
+    # Backward-compatible fallbacks.
     os.path.join(SCRIPT_DIR, "kill_team_dice_tray_and_score_tracker.py"),
-    # Backward-compatible fallbacks for older layouts.
     os.path.join(OUT_DIR, "kill_team_dice_tray_and_score_tracker.py"),
     os.path.join(OUT_DIR, "deep_arena_dice_tray.py"),
 ]

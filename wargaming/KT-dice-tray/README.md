@@ -1,18 +1,19 @@
 # Kill Team Dice Tray and Score Tracker
 
-This design now uses a single source-of-truth file instead of versioned source folders.
+This design now uses a single active folder.
 
-## Canonical Source
+## Active Working Folder
 
-- `kill_team_dice_tray_and_score_tracker.py` is the current FreeCAD macro.
-- `generate_diagrams.py` reads that macro and generates:
-  - `diagram_top_view.png`
-  - `diagram_side_section.png`
-  - `diagram_end_section.png`
+- `score-tracker/` is the only active working folder.
+- `score-tracker/kill_team_dice_tray_and_score_tracker.py` is the current FreeCAD macro.
+- `generate_diagrams.py` reads that macro and generates diagrams into `score-tracker/` by default:
+   - `diagram_top_view.png`
+   - `diagram_side_section.png`
+   - `diagram_end_section.png`
 
 ## Versioning Convention (Git Tags)
 
-Use Git tags to pin released versions instead of creating new `vX-*` source folders.
+Use Git tags to pin releases instead of creating new source folders.
 
 ### Suggested tag format
 
@@ -32,4 +33,4 @@ Use Git tags to pin released versions instead of creating new `vX-*` source fold
 
 ### Working on next version
 
-Edit the same canonical source file, commit, and tag the new release (for example `v3.1.0`).
+Edit files in `score-tracker/`, commit, and tag the new release (for example `v3.1.0`).

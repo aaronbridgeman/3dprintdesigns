@@ -3,7 +3,7 @@ import Part
 import os
 
 # Create a new document
-doc = App.newDocument("KillTeamDiceTrayAndScoreTracker_v3")
+doc = App.newDocument("KillTeamDiceTrayAndScoreTracker")
 
 # --- Dimensions ---
 width       = 110.0   # Fixed width (X axis)
@@ -389,7 +389,7 @@ cut_dice_row(current_y, p2_dice_x)    # P2 CRITS
 apply_parametric_labels()
 
 # 3. Add to document
-part_obj = doc.addObject("Part::Feature", "KillTeamDiceTrayAndScoreTracker_v3")
+part_obj = doc.addObject("Part::Feature", "KillTeamDiceTrayAndScoreTracker")
 part_obj.Shape = base
 
 doc.recompute()
