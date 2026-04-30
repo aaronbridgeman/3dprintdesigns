@@ -1,12 +1,12 @@
 """
 Technical diagram generator for the Kill Team Dice Tray and Score Tracker.
-Run this script to produce PNG diagrams for a given version folder.
+Run this script to produce PNG diagrams in this folder, or in a custom output folder.
 
 Usage:
   python generate_diagrams.py [output_dir]
 
-  output_dir  Path to the version folder where PNGs will be saved.
-              Defaults to the directory of this script if omitted.
+    output_dir  Path where PNGs will be saved.
+                            Defaults to the directory of this script if omitted.
 
 Outputs:
   - diagram_top_view.png    : Top-down plan view
@@ -36,7 +36,7 @@ slot_cut_h = 10.0
 roll_cut_h = 20.0
 base_h     = 23.0
 
-# ── Read optional overrides from the macro in the target folder ───────────────
+# ── Read optional overrides from the macro source file ─────────────────────────
 label_ledge   = 0.0
 score_label_zone = 0.0  # unified label area between dice and score tracker
 score_label_ledge = 0.0  # (deprecated - kept for backwards compatibility)
@@ -53,8 +53,16 @@ score_full_depth = 0
 score_buffer   = 0.0
 outer_corner_radius = 0.0
 
-macro_path = os.path.join(OUT_DIR, "deep_arena_dice_tray.py")
-if os.path.exists(macro_path):
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+macro_candidates = [
+    # Canonical source location (preferred).
+    os.path.join(SCRIPT_DIR, "kill_team_dice_tray_and_score_tracker.py"),
+    # Backward-compatible fallbacks for older layouts.
+    os.path.join(OUT_DIR, "kill_team_dice_tray_and_score_tracker.py"),
+    os.path.join(OUT_DIR, "deep_arena_dice_tray.py"),
+]
+macro_path = next((p for p in macro_candidates if os.path.exists(p)), None)
+if macro_path:
     with open(macro_path) as _f:
         for _line in _f:
             for _pat, _key in [
