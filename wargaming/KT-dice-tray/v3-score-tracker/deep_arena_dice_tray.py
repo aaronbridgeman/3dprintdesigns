@@ -29,8 +29,7 @@ score_cut_h = 10.0    # Score strip die slots
 add_parametric_labels = True
 
 # Text is built inside recessed label zones and raised back up for accent-color printing.
-text_font_size_tray = 5.0
-text_font_size_score = 4.0
+text_font_size = 5.0
 text_raise_h = 1.5        # Raise text from recessed label zones (1.5mm returns to top plane)
 text_padding_x = 0.8      # Keep text clear of zone side walls
 text_padding_y = 0.8      # Keep text clear of zone top/bottom walls
@@ -145,27 +144,37 @@ def _make_shapestring_shape(text, size, rotation_deg, font_path):
     return shape
 
 
-def _build_fitted_text_solid(text, zone_x, zone_y, zone_w, zone_h, z, max_size, rotation_deg, raise_h, font_path):
+def _compute_uniform_text_size(label_specs, max_size, font_path):
+    # label_specs entries: (text, zone_w, zone_h, rotation_deg)
+    uniform_scale = 1.0
+
+    for text, zone_w, zone_h, rotation_deg in label_specs:
+        if zone_w <= 0 or zone_h <= 0:
+            continue
+
+        shape = _make_shapestring_shape(text, max_size, rotation_deg, font_path)
+        bb = shape.BoundBox
+        if bb.XLength <= 0 or bb.YLength <= 0:
+            continue
+
+        avail_w = max(zone_w - (2 * text_padding_x), 0.1)
+        avail_h = max(zone_h - (2 * text_padding_y), 0.1)
+        fit_scale = min(1.0, avail_w / bb.XLength, avail_h / bb.YLength)
+        uniform_scale = min(uniform_scale, fit_scale)
+
+    return max_size * uniform_scale
+
+
+def _build_centered_text_solid(text, zone_x, zone_y, zone_w, zone_h, z, size, rotation_deg, raise_h, font_path):
     if zone_w <= 0 or zone_h <= 0:
         return None
 
-    # 1) Build at max size and measure real glyph bounds.
-    shape = _make_shapestring_shape(text, max_size, rotation_deg, font_path)
+    shape = _make_shapestring_shape(text, size, rotation_deg, font_path)
     bb = shape.BoundBox
     if bb.XLength <= 0 or bb.YLength <= 0:
         return None
 
-    avail_w = max(zone_w - (2 * text_padding_x), 0.1)
-    avail_h = max(zone_h - (2 * text_padding_y), 0.1)
-    fit_scale = min(1.0, avail_w / bb.XLength, avail_h / bb.YLength)
-
-    # 2) Rebuild at fitted size for cleaner edges.
-    if fit_scale < 1.0:
-        fitted_size = max_size * fit_scale
-        shape = _make_shapestring_shape(text, fitted_size, rotation_deg, font_path)
-        bb = shape.BoundBox
-
-    # 3) Center the text shape inside the target zone.
+    # Center the text shape inside the target zone.
     tx = zone_x + (zone_w - bb.XLength) / 2.0 - bb.XMin
     ty = zone_y + (zone_h - bb.YLength) / 2.0 - bb.YMin
     shape.translate(App.Vector(tx, ty, z))
@@ -200,49 +209,17 @@ def apply_parametric_labels():
     # Top level of the recessed label zones.
     label_zone_top_z = base_h - (outer_recess_d + label_zone_extra_d)
 
-    # P1 tray labels (left label ledge, top rows).
+    # P1/P2 tray labels.
     p1_label_x = wall
-    p1_specs = [
-        ("CRIT", p1_crits_y),
-        ("NORM", p1_normals_y),
-    ]
-    for text, y_pos in p1_specs:
-        solid = _build_fitted_text_solid(
-            text=text,
-            zone_x=p1_label_x,
-            zone_y=y_pos,
-            zone_w=label_ledge,
-            zone_h=slot_d,
-            z=label_zone_top_z,
-            max_size=text_font_size_tray,
-            rotation_deg=-90.0,
-            raise_h=text_raise_h,
-            font_path=font_path,
-        )
-        if solid is not None:
-            base = base.fuse(solid)
-
-    # P2 tray labels (right side of P2 rows, connected to P2 tray edge).
     p2_label_x = wall + dice_w
-    p2_specs = [
-        ("NORM", p2_normals_y),
-        ("CRIT", p2_crits_y),
+    p1_specs = [
+        ("CRIT", p1_label_x, p1_crits_y, -90.0),
+        ("NORM", p1_label_x, p1_normals_y, -90.0),
     ]
-    for text, y_pos in p2_specs:
-        solid = _build_fitted_text_solid(
-            text=text,
-            zone_x=p2_label_x,
-            zone_y=y_pos,
-            zone_w=label_ledge,
-            zone_h=slot_d,
-            z=label_zone_top_z,
-            max_size=text_font_size_tray,
-            rotation_deg=-90.0,
-            raise_h=text_raise_h,
-            font_path=font_path,
-        )
-        if solid is not None:
-            base = base.fuse(solid)
+    p2_specs = [
+        ("NORM", p2_label_x, p2_normals_y, 90.0),
+        ("CRIT", p2_label_x, p2_crits_y, 90.0),
+    ]
 
     # Score-label text: one label per score box in the score-label zone.
     score_label_x = score_strip_x - score_label_zone
@@ -255,20 +232,49 @@ def apply_parametric_labels():
         "CP", "TEAM", "CRIT", "TAC", "KILL", "TP/INI",
         "TP/INI", "KILL", "TAC", "CRIT", "TEAM", "CP",
     ]
+
+    # Compute one shared text size that fits every label zone.
+    uniform_label_specs = [
+        ("CRIT", label_ledge, slot_d, -90.0),
+        ("NORM", label_ledge, slot_d, -90.0),
+        ("NORM", label_ledge, slot_d, 90.0),
+        ("CRIT", label_ledge, slot_d, 90.0),
+    ]
+    for txt in score_labels[:min(n_score, len(score_labels))]:
+        uniform_label_specs.append((txt, score_label_recess_w, score_slot_d, 90.0))
+
+    uniform_text_size = _compute_uniform_text_size(uniform_label_specs, text_font_size, font_path)
+
+    for text, zone_x, zone_y, rotation_deg in p1_specs + p2_specs:
+        solid = _build_centered_text_solid(
+            text=text,
+            zone_x=zone_x,
+            zone_y=zone_y,
+            zone_w=label_ledge,
+            zone_h=slot_d,
+            z=label_zone_top_z,
+            size=uniform_text_size,
+            rotation_deg=rotation_deg,
+            raise_h=text_raise_h,
+            font_path=font_path,
+        )
+        if solid is not None:
+            base = base.fuse(solid)
+
     score_label_z = label_zone_top_z
     y_pos = wall + score_buffer
 
     for i in range(min(n_score, len(score_labels))):
         text = score_labels[i]
-        solid = _build_fitted_text_solid(
+        solid = _build_centered_text_solid(
             text=text,
             zone_x=score_label_recess_x,
             zone_y=y_pos,
             zone_w=score_label_recess_w,
             zone_h=score_slot_d,
             z=score_label_z,
-            max_size=text_font_size_score,
-            rotation_deg=-90.0,
+            size=uniform_text_size,
+            rotation_deg=90.0,
             raise_h=text_raise_h,
             font_path=font_path,
         )
