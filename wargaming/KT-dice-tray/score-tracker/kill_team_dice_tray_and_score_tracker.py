@@ -6,10 +6,9 @@ import os
 doc = App.newDocument("KillTeamDiceTrayAndScoreTracker")
 
 # --- Dimensions ---
-width       = 110.0   # Fixed width (X axis)
 wall        = 2.5     # Outer walls (optimal for 3D printing durability)
 right_wall  = 2.5     # Right outer wall (consistent with left for structural integrity)
-label_ledge = 12.0    # P1-side label area for crit/normal (12mm zone)
+label_ledge = 9.0     # P1-side label area for crit/normal
 
 # Die slot geometry
 die_slot_w  = 16.0    # Each die slot width — fits 16mm dice
@@ -17,20 +16,20 @@ slot_div    = 1.0     # Thin raised divider between die slots
 n_dice      = 4       # Dice per crits/normals tray
 
 # Section Y-depths
-slot_d      = 17.0    # Y-depth of each normals/crits tray (16mm dice + 0.5mm clearance each side)
-roll_cut_h  = 20.0    # Deep rolling arena cut depth
+slot_d      = 16.0    # Y-depth of each normals/crits tray (reduced by 1mm for tighter fit)
+roll_cut_h  = 18.0    # Rolling arena cut depth (2mm shallower for easier pickup)
 base_h      = 23.0    # Total tray height (3mm floor under rolling cut, optimized for material savings)
 
 # Cut heights (Z, downward from top)
-slot_cut_h  = 10.0    # Normals/crits die slots
-score_cut_h = 10.0    # Score strip die slots
+slot_cut_h  = 8.0     # Normals/crits die slots (2mm shallower for easier dice pickup)
+score_cut_h = 8.0     # Score strip die slots (2mm shallower for easier dice pickup)
 
 # Parametric label text (optional, printable geometry)
 add_parametric_labels = True
 
 # Text is built inside recessed label zones and raised back up for accent-color printing.
 text_font_size = 5.0
-text_raise_h = 1.5        # Raise text from recessed label zones (1.5mm returns to top plane)
+text_raise_h = 0.5        # Raise text to flush with box top (= label_zone_extra_d, no outer recess)
 text_padding_x = 0.8      # Keep text clear of zone side walls
 text_padding_y = 0.8      # Keep text clear of zone top/bottom walls
 
@@ -43,41 +42,59 @@ text_font_candidates = [
 
 # Accent zones for color filling (optional)
 add_accent_zones    = True
-outer_border_w      = 1.0    # Raised outer rim width
-outer_recess_d      = 1.0    # Recess depth inside outer rim
-label_zone_extra_d  = 0.5    # Extra recess in label zones so they can be a second accent color
+outer_border_w      = 1.0    # Raised outer rim width (unused when outer_recess_d = 0)
+outer_recess_d      = 0.0    # Outer border recess removed; interior flush with box top
+label_zone_extra_d  = 0.5    # Recess in label zones for second accent color
 score_label_clearance = 1.0  # Keep score-label recess 1mm clear of neighboring features on each side
 
 # Exterior finishing
 outer_corner_radius = 1.5    # Small fillet on outer vertical corners
 
+# Additional material-saving features
+add_material_savers = True
+
+# 1) Bottom relief under the rolling arena (keeps a controlled skin thickness)
+rolling_floor_relief_inset = 4.0
+rolling_floor_relief_depth = 2.5
+
+# 2) Thin the long outer side walls over the central span (leave corners thick)
+long_edge_relief_depth = 0.5   # 2.5mm -> ~2.0mm where relief is applied
+long_edge_relief_margin = 10.0 # Keep thicker wall near both ends for strength
+
+# 4) Convert selected full-height dividers to partial-height dividers
+add_partial_height_dividers = True
+partial_divider_height = 11.0  # Remaining height for norm/crit row dividers above build plate
+score_divider_height   = base_h * 0.5  # Half-height score-box inter-slot dividers
+
 # --- Score strip (right side, aligned with outer dice rows) ---
-# Single column, 12 stacked 17mm slots (16mm dice + 0.5mm clearance each side):
+# Single column, 12 stacked slots with reduced clearance:
 # P1 side (top): CP | TEAM | CRIT | TAC | KILL | TP/INI P1
 # P2 side (bot): TP/INI P2 | KILL | TAC | CRIT | TEAM | CP
 n_score      = 12
-score_slot_d = 17.0    # 16mm dice + 0.5mm clearance each side (matches slot_d)
+score_slot_w = 14.0    # Reduced by 1mm per side in X for tighter score boxes
+score_slot_d = 15.0    # Reduced by 1mm per side in Y for tighter score boxes
 score_full_depth = True
 score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 score_label_zone = 10.0 # Unified label area between dice and score tracker
 
-# X layout: wall(2.5) + ledge(12) + dice(67) + score_label_zone(10) + score(16) + r_wall(2.5) = 110
+# X layout: wall + ledge + dice + score_label_zone + score_slot + right_wall
 dice_w       = n_dice * die_slot_w + (n_dice - 1) * slot_div   # 4*16 + 3*1 = 67mm
 score_strip_x = wall + label_ledge + dice_w + score_label_zone   # x = 93mm
-# score strip occupies x=93..109, right wall x=109..110
+width        = score_strip_x + score_slot_w + right_wall
+# score strip occupies x=score_strip_x..(score_strip_x + score_slot_w)
 
 # Rolling area: from x=wall to just before the score label zone
 roll_w = label_ledge + dice_w   # 12 + 67 = 79mm
 
 # Score-tracker span drives overall tray depth.
-# 12*17 + 11*1 = 215mm score span; + 2*2.5mm walls = 220mm total.
 score_span_d = n_score * score_slot_d + (n_score - 1) * slot_div
 score_buffer = 0.0     # No buffer: crits rows align directly with score rows
 total_depth = score_span_d + (2 * score_buffer) + (2 * wall)
 
-# Rolling area depth is optimized for the new overall depth:
-# total_depth = 4*slot_d + roll_d + 6*wall  => roll_d = 220 - 68 - 15 = 137mm
-roll_d = 137.0
+# Rolling area depth is derived from the reduced overall depth.
+roll_d = total_depth - (4 * slot_d + 6 * wall)
+if roll_d <= 0:
+    raise ValueError("Computed rolling-area depth is non-positive; adjust slot dimensions.")
 
 # 1. Create the Main Body
 base = Part.makeBox(width, total_depth, base_h)
@@ -118,6 +135,13 @@ def _cut_box(x, y, z_from_top, bx, by, bz):
 
 def _top_recess(x, y, bx, by, depth):
     _cut_box(x, y, depth, bx, by, depth)
+
+
+def _cut_box_from_bottom(x, y, bx, by, bz):
+    global base
+    cutout = Part.makeBox(bx, by, bz)
+    cutout.translate(App.Vector(x, y, -0.01))
+    base = base.cut(cutout)
 
 
 def _resolve_font_path():
@@ -288,13 +312,14 @@ def apply_accent_zones():
         return
 
     # 1) Outer accent border: recess the full interior from the top, leaving a 1mm raised perimeter.
-    _top_recess(
-        outer_border_w,
-        outer_border_w,
-        width - (2 * outer_border_w),
-        total_depth - (2 * outer_border_w),
-        outer_recess_d,
-    )
+    if outer_recess_d > 0:
+        _top_recess(
+            outer_border_w,
+            outer_border_w,
+            width - (2 * outer_border_w),
+            total_depth - (2 * outer_border_w),
+            outer_recess_d,
+        )
 
     # Row anchors (Y) for label-zone accents.
     p1_crits_y = wall
@@ -338,6 +363,66 @@ def apply_accent_zones():
             outer_recess_d + label_zone_extra_d,
         )
 
+
+def apply_material_savers():
+    if not add_material_savers:
+        return
+
+    # Recompute row anchors for deterministic placement.
+    p1_crits_y = wall
+    p1_normals_y = p1_crits_y + slot_d + wall
+    roll_y = p1_normals_y + slot_d + wall
+    p2_normals_y = roll_y + roll_d + wall
+    p2_crits_y = p2_normals_y + slot_d + wall
+
+    # 1) Bottom relief pocket under the rolling arena floor.
+    relief_w = max(roll_w - (2 * rolling_floor_relief_inset), 0.0)
+    relief_d = max(roll_d - (2 * rolling_floor_relief_inset), 0.0)
+    if relief_w > 0 and relief_d > 0 and rolling_floor_relief_depth > 0:
+        _cut_box_from_bottom(
+            wall + rolling_floor_relief_inset,
+            roll_y + rolling_floor_relief_inset,
+            relief_w,
+            relief_d,
+            rolling_floor_relief_depth,
+        )
+
+    # 2) Long-edge side wall thinning over the center span.
+    relief_y = wall + long_edge_relief_margin
+    relief_span = total_depth - (2 * wall) - (2 * long_edge_relief_margin)
+    if long_edge_relief_depth > 0 and relief_span > 0:
+        _cut_box(
+            wall - long_edge_relief_depth,
+            relief_y,
+            base_h,
+            long_edge_relief_depth,
+            relief_span,
+            base_h,
+        )
+        _cut_box(
+            width - right_wall,
+            relief_y,
+            base_h,
+            long_edge_relief_depth,
+            relief_span,
+            base_h,
+        )
+
+    # 4) Lower selected divider walls (between crit/norm rows) to partial height.
+    if add_partial_height_dividers and partial_divider_height < base_h:
+        top_cut = base_h - partial_divider_height
+        divider_x = wall
+        divider_w = label_ledge + dice_w
+        for divider_y in (p1_crits_y + slot_d, p2_normals_y + slot_d):
+            _cut_box(divider_x, divider_y, top_cut, divider_w, wall, top_cut)
+
+    # Score strip inter-box dividers lowered to partial height.
+    if add_partial_height_dividers and score_divider_height < base_h:
+        score_top_cut = base_h - score_divider_height
+        for i in range(n_score - 1):
+            div_y = wall + score_slot_d + i * (score_slot_d + slot_div)
+            _cut_box(score_strip_x, div_y, score_top_cut, score_slot_w, slot_div, score_top_cut)
+
 # --- Normals/crits tray: single contiguous pocket (no internal dividers) ---
 # P1 dice: label ledge on their left (x=4..23), dice from x=23
 # P2 dice: label ledge on their left = our right (x=91..110-3=107 is right wall)
@@ -353,12 +438,12 @@ def cut_rolling(y_pos):
 # Symmetric layout (Y order, P1 end at top):
 # CP, TEAM, CRIT, TAC, KILL, TP/INI, KILL, TAC, CRIT, TEAM, CP
 def cut_score_strip_full_depth():
-    # Keep each score box at 16mm and add buffer space from each end wall.
+    # Keep score boxes aligned with outer rows and add end-wall buffer if configured.
     score_start_y = wall + score_buffer
 
     y = score_start_y
     for _ in range(n_score):
-        _cut_box(score_strip_x, y, score_cut_h, die_slot_w, score_slot_d, score_cut_h)
+        _cut_box(score_strip_x, y, score_cut_h, score_slot_w, score_slot_d, score_cut_h)
         y += score_slot_d + slot_div
 
 # 2. Apply all cuts (Y: P1 end -> P2 end)
@@ -387,6 +472,7 @@ current_y += slot_d + wall
 cut_dice_row(current_y, p2_dice_x)    # P2 CRITS
 
 apply_parametric_labels()
+apply_material_savers()
 
 # 3. Add to document
 part_obj = doc.addObject("Part::Feature", "KillTeamDiceTrayAndScoreTracker")
