@@ -45,7 +45,7 @@ Why: cleaner tab/slot dimensions and less post-fit tuning.
 
 - Segments: flat on bed, spokes upward from bed plane (as generated)
 - Hub: flat on bed
-- Keep labels up-facing where possible for readability
+- If labels are enabled, keep them up-facing for readability
 
 ## 6) Dimensional accuracy for press-fit joints
 
@@ -73,7 +73,7 @@ PETG:
 
 ## 6in / 32mm segmented aura
 
-- Keep segmentation automatic (already plate-safe)
+- Current preset uses 4 forced segments (`force_split_segments = 4`)
 - Use 0.20mm layers
 - Perimeters: 3
 - Infill: 12%
@@ -131,6 +131,7 @@ Safe start:
 
 - do not reduce `ring_rail_mm` below 1.0 with 0.4 nozzle
 - recommended range: 1.1-1.4mm
+- if using `outer_rail_mm`, keep it around 1.2-1.8 depending on desired stiffness
 
 Effect:
 - protects ring continuity and accidental flex damage
@@ -155,6 +156,7 @@ Apply these in `aura_config.py`:
 - 6in aid:
   - `ring_window_ratio = 0.72`
   - `ring_window_count = 48` (unchanged)
+  - optional: set `outer_rail_mm` (for example 1.6) to stiffen only the outside edge
 - 3in aid:
   - `ring_window_ratio = 0.70`
   - `ring_window_count = 30` (unchanged)

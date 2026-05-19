@@ -22,16 +22,20 @@ This folder contains:
 
 ## Build-plate handling
 
-The script uses a Bambu Lab P2S build plate (`256x256mm`) and automatically splits oversized aids into multiple printable segments.
+The script uses a Bambu Lab P2S build plate (`256x256mm`) and can split oversized aids into multiple printable segments.
 
 - Small aid that fits: generated as a single piece.
 - Oversized aid: generated as radial segments plus a center hub with a low-profile knob.
+
+You can either:
+- let segment count be chosen automatically, or
+- force a specific count with `force_split_segments` in `AuraAidSpec`.
 
 Default oversized assembly style is press-fit tabs/slots.
 
 ## Added options
 
-- Embossed part labels on every printable piece (for example `S6-32-P1`, `S6-32-H`).
+- Optional embossed part labels on printable pieces (for example `S6-32-P1`, `S6-32-H`).
 - Handle presets:
 	- `low_profile_knob`
 	- `loop_handle`
@@ -68,9 +72,11 @@ Diagrams also show:
 3. The macro creates one document named `KillTeamAuraAids` with all printable parts laid out for export.
 4. Export each part object as STL/3MF.
 
-By default, the macro now creates two object sets:
-- Assembly preview objects (`*_preview_*`): arranged as an assembled circle for visual checking.
+By default, the macro creates print-layout objects only:
 - Print layout objects (`*_part_*`): arranged for export/printing.
+
+Optionally, it can also create assembly preview objects:
+- Assembly preview objects (`*_preview_*`): arranged as an assembled circle for visual checking.
 
 You can control this in `aura_config.py`:
 - `GENERATE_ASSEMBLY_PREVIEW`
@@ -117,7 +123,8 @@ Add or edit entries in `AURA_AIDS` inside `aura_config.py`:
 - `center_spoke_count`: number of radial spokes.
 - `ring_window_count`: number of ring windows.
 - `ring_window_ratio`: per-window angular fraction inside each bucket.
-- `ring_rail_mm`: preserved inner/outer rail thickness.
+- `ring_rail_mm`: preserved inner rail thickness.
+- `outer_rail_mm`: optional override for outer rail thickness (if omitted, uses `ring_rail_mm`).
 - `force_split_segments`: set an integer to override auto segmentation.
 
 Global settings are also in `aura_config.py`:
