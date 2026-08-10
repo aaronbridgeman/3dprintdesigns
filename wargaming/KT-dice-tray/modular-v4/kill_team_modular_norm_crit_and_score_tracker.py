@@ -70,7 +70,7 @@ label_cut_h = 0.5
 storage_well_cut_h = 7.0
 
 # Programmatic text engraving
-norm_crit_text_size = 4.5
+norm_crit_text_size = 2.8
 score_center_text_size = 3.5
 side_label_text_size = 4.5
 text_cut_h = 0.6
