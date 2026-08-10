@@ -70,10 +70,10 @@ label_cut_h = 0.5
 storage_well_cut_h = 7.0
 
 # Programmatic text engraving
-norm_crit_text_size = 5.4
-score_center_text_size = 5.0
-side_label_text_size = 7.8
-text_cut_h = 0.6
+norm_crit_text_size = 4.2
+score_center_text_size = 3.5
+side_label_text_size = 5.5
+text_cut_h = 0.5
 
 FONT_CANDIDATES = [
     "C:/Windows/Fonts/arialbd.ttf",
@@ -153,13 +153,15 @@ def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation
     if text_shape.isNull():
         raise RuntimeError(f"Failed to generate text shape for '{text}'.")
 
-    # Normalize to positive XY before rotation.
-    text_shape.translate(App.Vector(-text_shape.BoundBox.XMin, -text_shape.BoundBox.YMin, 0))
-
+    # Apply rotation first at origin
     if abs(rotation_deg) > 0.001:
         text_shape.Placement = App.Placement(App.Vector(0, 0, 0), App.Rotation(App.Vector(0, 0, 1), rotation_deg))
-        text_shape.translate(App.Vector(-text_shape.BoundBox.XMin, -text_shape.BoundBox.YMin, 0))
-
+    
+    # Normalize to positive XY after rotation
+    bb_pre = text_shape.BoundBox
+    text_shape.translate(App.Vector(-bb_pre.XMin, -bb_pre.YMin, 0))
+    
+    # Center on target position
     bb = text_shape.BoundBox
     place_x = center_x - (bb.XLength / 2.0)
     place_y = center_y - (bb.YLength / 2.0)
