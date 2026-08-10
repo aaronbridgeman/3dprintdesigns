@@ -11,6 +11,26 @@ This design now uses a single active folder.
    - `diagram_side_section.png`
    - `diagram_end_section.png`
 
+## Design Variants
+
+### `score-tracker/` (v3/v4 Classic)
+
+Monolithic tray with integrated dice pockets, rolling arena, and side-mounted score tracker.
+
+### `modular-v4/` (Modular Alternative)
+
+A new experimental variant featuring:
+- **Two independent modules**: Norm/Crit tray + Standalone score tracker
+- **Optional bridge-key linking**: Underside edge notches + detachable H-shaped bridge key
+- **No rolling arena**: Full-width norm/crit rows maximize dice space
+- **Enlarged die pockets**: All slots increased by +1.0 mm for better fit
+- **Clear ONE/TWO orientation**: Score tracker has mirrored side-label layout
+- **Programmatic engraved labels**: Center and side labels are generated in the FreeCAD macro
+- **Standalone usable**: Each module printable and functional on its own
+- **Retained assembled width**: 105 mm (same as classic version)
+
+See `modular-v4/README.md` for details on building, assembly, and customization.
+
 ## Versioning Convention (Git Tags)
 
 Use Git tags to pin releases instead of creating new source folders.
