@@ -161,13 +161,15 @@ def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation
     bb_pre = text_shape.BoundBox
     text_shape.translate(App.Vector(-bb_pre.XMin, -bb_pre.YMin, 0))
     
-    # Center on target position
+    # Center on target position at the top surface
     bb = text_shape.BoundBox
     place_x = center_x - (bb.XLength / 2.0)
     place_y = center_y - (bb.YLength / 2.0)
-    text_shape.translate(App.Vector(place_x, place_y, base_h - depth - 0.02))
+    # Position at top surface height and extrude downward
+    text_shape.translate(App.Vector(place_x, place_y, base_h))
 
-    cutter = text_shape.extrude(App.Vector(0, 0, depth + 0.05))
+    # Extrude downward (negative Z) to cut into the surface
+    cutter = text_shape.extrude(App.Vector(0, 0, -(depth + 0.05)))
     return solid.cut(cutter)
 
 
