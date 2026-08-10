@@ -263,7 +263,7 @@ def build_norm_crit_module():
         row1_y + (norm_crit_die_d / 2.0),
         norm_crit_text_size,
         text_cut_h,
-        90.0,
+        0.0,
     )
     piece = engrave_text_centered(
         piece,
@@ -272,7 +272,7 @@ def build_norm_crit_module():
         row2_y + (norm_crit_die_d / 2.0),
         norm_crit_text_size,
         text_cut_h,
-        90.0,
+        0.0,
     )
 
     # Universal edge notches for optional bridge-key accessory
