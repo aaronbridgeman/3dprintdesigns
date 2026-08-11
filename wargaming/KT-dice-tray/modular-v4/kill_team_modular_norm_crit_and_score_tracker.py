@@ -45,8 +45,8 @@ right_score_x = center_strip_x + center_strip_w
 if left_score_x < wall or (right_score_x + score_die_w + wall) > module_width:
     raise ValueError("Centered score cluster exceeds module width.")
 
-# Y layout: 6 score rows (KILL, TAC, CRIT, CP, TEAM, INI/TP)
-score_labels_top_to_bottom = ["KILL", "TAC", "CRIT", "CP", "TEAM", "INI/TP"]
+# Y layout: 6 score rows (KILL, TAC, CRIT, CP, TEAM, TP/INI)
+score_labels_top_to_bottom = ["KILL", "TAC", "CRIT", "CP", "TEAM", "TP/INI"]
 score_row_count = len(score_labels_top_to_bottom)
 score_d = (2 * wall) + (score_row_count * score_die_d) + ((score_row_count - 1) * slot_div)
 score_cut_h = 7.0
@@ -144,7 +144,7 @@ def cut_from_bottom(solid, x, y, cut_h, bx, by, bz):
     return solid.cut(cutter)
 
 
-def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation_deg=0.0):
+def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation_deg=0.0, surface_z=None):
     text_obj = Draft.makeShapeString(String=text, FontFile=font_file, Size=size, Tracking=0.0)
     doc.recompute()
     text_shape = text_obj.Shape.copy()
@@ -161,12 +161,15 @@ def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation
     bb_pre = text_shape.BoundBox
     text_shape.translate(App.Vector(-bb_pre.XMin, -bb_pre.YMin, 0))
     
-    # Center on target position at the top surface
+    if surface_z is None:
+        surface_z = base_h
+
+    # Center on target position at the target surface
     bb = text_shape.BoundBox
     place_x = center_x - (bb.XLength / 2.0)
     place_y = center_y - (bb.YLength / 2.0)
-    # Position at top surface height and extrude downward
-    text_shape.translate(App.Vector(place_x, place_y, base_h))
+    # Position at local surface height and extrude downward
+    text_shape.translate(App.Vector(place_x, place_y, surface_z))
 
     # Extrude downward (negative Z) to cut into the surface
     cutter = text_shape.extrude(App.Vector(0, 0, -(depth + 0.05)))
@@ -254,8 +257,9 @@ def build_norm_crit_module():
     # Side label recesses for rotated NORM/CRIT text
     ledge_x = wall + 0.4
     ledge_w = max(label_ledge - 0.8, 0.1)
-    piece = cut_from_top(piece, ledge_x, row1_y, 1.0, ledge_w, norm_crit_die_d, 1.0)
-    piece = cut_from_top(piece, ledge_x, row2_y, 1.0, ledge_w, norm_crit_die_d, 1.0)
+    norm_crit_label_recess_h = 1.0
+    piece = cut_from_top(piece, ledge_x, row1_y, norm_crit_label_recess_h, ledge_w, norm_crit_die_d, norm_crit_label_recess_h)
+    piece = cut_from_top(piece, ledge_x, row2_y, norm_crit_label_recess_h, ledge_w, norm_crit_die_d, norm_crit_label_recess_h)
 
     # Programmatic NORM/CRIT engraving inside side ledge recesses.
     piece = engrave_text_centered(
@@ -266,6 +270,7 @@ def build_norm_crit_module():
         norm_crit_text_size,
         text_cut_h,
         0.0,
+        base_h - norm_crit_label_recess_h,
     )
     piece = engrave_text_centered(
         piece,
@@ -275,6 +280,7 @@ def build_norm_crit_module():
         norm_crit_text_size,
         text_cut_h,
         0.0,
+        base_h - norm_crit_label_recess_h,
     )
 
     # Universal edge notches for optional bridge-key accessory
@@ -382,7 +388,7 @@ App.Console.PrintMessage(f"Module width: {module_width:.2f} mm\n")
 App.Console.PrintMessage(f"Norm/Crit cuts: 2 x ({norm_crit_inner_w:.2f} x {norm_crit_die_d:.2f}) mm\n")
 App.Console.PrintMessage("Norm/Crit labels are engraved programmatically (NORM top, CRIT bottom)\n")
 App.Console.PrintMessage("Main score lanes + center labels are centered on X axis\n")
-App.Console.PrintMessage("Center labels between score pairs are engraved: KILL, TAC, CRIT, CP, TEAM, INI/TP\n")
+App.Console.PrintMessage("Center labels between score pairs are engraved: KILL, TAC, CRIT, CP, TEAM, TP/INI\n")
 App.Console.PrintMessage("Side labels are engraved: ONE (left), TWO (right)\n")
 App.Console.PrintMessage(f"Tracker footprint: {module_width:.2f} x {score_d:.2f} mm\n")
 App.Console.PrintMessage(
