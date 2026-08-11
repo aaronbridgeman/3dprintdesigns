@@ -66,14 +66,14 @@ side_padding_x = 2.0
 side_gap_y = slot_div
 side_feature_w = (left_side_x1 - left_side_x0) - (2 * side_padding_x)
 label_box_h = score_die_d
-label_cut_h = 0.5
 storage_well_cut_h = 7.0
 
-# Programmatic text engraving
-norm_crit_text_size = 2.8
+# Programmatic text embossing. Every label rises to base_h + text_relief_h.
+norm_text_size = 3.4
+crit_text_size = 3.4
 score_center_text_size = 3.5
 side_label_text_size = 4.5
-text_cut_h = 0.6
+text_relief_h = 0.6
 
 FONT_CANDIDATES = [
     "C:/Windows/Fonts/arialbd.ttf",
@@ -105,18 +105,6 @@ p2_storage_well_y = kill_y
 p2_storage_well_w = side_feature_w
 p2_storage_well_h = p2_label_y - side_gap_y - p2_storage_well_y
 
-# Optional bridge-key geometry (for detachable module linking)
-bridge_notch_len = 14.0
-bridge_notch_half_w = 3.0
-bridge_notch_cut_h = 2.2
-bridge_key_clearance = 0.2
-
-bridge_key_len = bridge_notch_len - bridge_key_clearance
-bridge_key_w = (2.0 * bridge_notch_half_w) - bridge_key_clearance
-bridge_key_bar_w = bridge_notch_half_w - (bridge_key_clearance / 2.0)
-bridge_key_spine_w = 3.0
-bridge_key_h = bridge_notch_cut_h - 0.15
-
 
 def find_font_file():
     for candidate in FONT_CANDIDATES:
@@ -138,13 +126,7 @@ def cut_from_top(solid, x, y, cut_h, bx, by, bz):
     return solid.cut(cutter)
 
 
-def cut_from_bottom(solid, x, y, cut_h, bx, by, bz):
-    cutter = Part.makeBox(bx, by, bz)
-    cutter.translate(App.Vector(x, y, -0.01))
-    return solid.cut(cutter)
-
-
-def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation_deg=0.0, surface_z=None):
+def emboss_text_centered(solid, text, center_x, center_y, size, height, rotation_deg=0.0):
     text_obj = Draft.makeShapeString(String=text, FontFile=font_file, Size=size, Tracking=0.0)
     doc.recompute()
     text_shape = text_obj.Shape.copy()
@@ -160,85 +142,16 @@ def engrave_text_centered(solid, text, center_x, center_y, size, depth, rotation
     # Normalize to positive XY after rotation
     bb_pre = text_shape.BoundBox
     text_shape.translate(App.Vector(-bb_pre.XMin, -bb_pre.YMin, 0))
-    
-    if surface_z is None:
-        surface_z = base_h
 
-    # Center on target position at the target surface
+    # Center on the common module top surface.
     bb = text_shape.BoundBox
     place_x = center_x - (bb.XLength / 2.0)
     place_y = center_y - (bb.YLength / 2.0)
-    # Position at local surface height and extrude downward
-    text_shape.translate(App.Vector(place_x, place_y, surface_z))
+    text_shape.translate(App.Vector(place_x, place_y, base_h))
 
-    # Extrude downward (negative Z) to cut into the surface
-    cutter = text_shape.extrude(App.Vector(0, 0, -(depth + 0.05)))
-    return solid.cut(cutter)
-
-
-def add_bridge_notches(solid, piece_depth):
-    """Add standardized underside edge notches so a separate key can bridge any touching module edges."""
-    x_mid = module_width / 2.0
-    y_mid = piece_depth / 2.0
-
-    # Top edge (Y min) - underside notch
-    solid = cut_from_bottom(
-        solid,
-        x_mid - (bridge_notch_len / 2.0),
-        0.0,
-        bridge_notch_cut_h,
-        bridge_notch_len,
-        bridge_notch_half_w,
-        bridge_notch_cut_h,
-    )
-
-    # Bottom edge (Y max) - underside notch
-    solid = cut_from_bottom(
-        solid,
-        x_mid - (bridge_notch_len / 2.0),
-        piece_depth - bridge_notch_half_w,
-        bridge_notch_cut_h,
-        bridge_notch_len,
-        bridge_notch_half_w,
-        bridge_notch_cut_h,
-    )
-
-    # Left edge (X min) - underside notch
-    solid = cut_from_bottom(
-        solid,
-        0.0,
-        y_mid - (bridge_notch_len / 2.0),
-        bridge_notch_cut_h,
-        bridge_notch_half_w,
-        bridge_notch_len,
-        bridge_notch_cut_h,
-    )
-
-    # Right edge (X max) - underside notch
-    solid = cut_from_bottom(
-        solid,
-        module_width - bridge_notch_half_w,
-        y_mid - (bridge_notch_len / 2.0),
-        bridge_notch_cut_h,
-        bridge_notch_half_w,
-        bridge_notch_len,
-        bridge_notch_cut_h,
-    )
-
-    return solid
-
-
-def build_bridge_key():
-    """H-shaped key: two bars in paired notches with a center spine across the seam."""
-    top_bar = Part.makeBox(bridge_key_len, bridge_key_bar_w, bridge_key_h)
-
-    bottom_bar = Part.makeBox(bridge_key_len, bridge_key_bar_w, bridge_key_h)
-    bottom_bar.translate(App.Vector(0, bridge_key_w - bridge_key_bar_w, 0))
-
-    spine = Part.makeBox(bridge_key_spine_w, bridge_key_w, bridge_key_h)
-    spine.translate(App.Vector((bridge_key_len - bridge_key_spine_w) / 2.0, 0, 0))
-
-    return top_bar.fuse(bottom_bar).fuse(spine)
+    # Extrude upward so every label shares the same final top height.
+    text_solid = text_shape.extrude(App.Vector(0, 0, height))
+    return solid.fuse(text_solid)
 
 
 # --- Build Norm/Crit module ---
@@ -254,37 +167,26 @@ def build_norm_crit_module():
     piece = cut_from_top(piece, tray_x, row1_y, row_cut_h, tray_w, norm_crit_die_d, row_cut_h)
     piece = cut_from_top(piece, tray_x, row2_y, row_cut_h, tray_w, norm_crit_die_d, row_cut_h)
 
-    # Side label recesses for rotated NORM/CRIT text
-    ledge_x = wall + 0.4
-    ledge_w = max(label_ledge - 0.8, 0.1)
-    norm_crit_label_recess_h = 1.0
-    piece = cut_from_top(piece, ledge_x, row1_y, norm_crit_label_recess_h, ledge_w, norm_crit_die_d, norm_crit_label_recess_h)
-    piece = cut_from_top(piece, ledge_x, row2_y, norm_crit_label_recess_h, ledge_w, norm_crit_die_d, norm_crit_label_recess_h)
-
-    # Programmatic NORM/CRIT engraving inside side ledge recesses.
-    piece = engrave_text_centered(
+    # Raised NORM/CRIT labels centered between outer edge (X=0) and tray cutout start.
+    ledge_center_x = tray_x / 2.0
+    piece = emboss_text_centered(
         piece,
         "NORM",
-        ledge_x + (ledge_w / 2.0),
+        ledge_center_x,
         row1_y + (norm_crit_die_d / 2.0),
-        norm_crit_text_size,
-        text_cut_h,
-        0.0,
-        base_h - norm_crit_label_recess_h,
+        norm_text_size,
+        text_relief_h,
+        90.0,
     )
-    piece = engrave_text_centered(
+    piece = emboss_text_centered(
         piece,
         "CRIT",
-        ledge_x + (ledge_w / 2.0),
+        ledge_center_x,
         row2_y + (norm_crit_die_d / 2.0),
-        norm_crit_text_size,
-        text_cut_h,
-        0.0,
-        base_h - norm_crit_label_recess_h,
+        crit_text_size,
+        text_relief_h,
+        90.0,
     )
-
-    # Universal edge notches for optional bridge-key accessory
-    piece = add_bridge_notches(piece, norm_crit_d)
 
     return piece
 
@@ -301,56 +203,50 @@ def build_score_tracker():
         piece = cut_from_top(piece, left_score_x, y, score_cut_h, score_die_w, score_die_d, score_cut_h)
         piece = cut_from_top(piece, right_score_x, y, score_cut_h, score_die_w, score_die_d, score_cut_h)
 
-    # Programmatic center labels (engraved) between paired score boxes.
+    # Raised center labels between paired score boxes.
     for i, label in enumerate(score_labels_top_to_bottom):
         y = row_y[i]
-        piece = engrave_text_centered(
+        piece = emboss_text_centered(
             piece,
             label,
             center_strip_x + (center_strip_w / 2.0),
             y + (score_die_d / 2.0),
             score_center_text_size,
-            text_cut_h,
+            text_relief_h,
             90.0,
         )
 
-    # Left side: ONE label area and storage well
-    piece = cut_from_top(piece, p1_label_x, p1_label_y, label_cut_h, p1_label_w, p1_label_h, label_cut_h)
+    # Left side: raised ONE label and storage well.
     piece = cut_from_top(piece, p1_storage_well_x, p1_storage_well_y, storage_well_cut_h, p1_storage_well_w, p1_storage_well_h, storage_well_cut_h)
 
-    # Right side: TWO label area and storage well
-    piece = cut_from_top(piece, p2_label_x, p2_label_y, label_cut_h, p2_label_w, p2_label_h, label_cut_h)
+    # Right side: raised TWO label and storage well.
     piece = cut_from_top(piece, p2_storage_well_x, p2_storage_well_y, storage_well_cut_h, p2_storage_well_w, p2_storage_well_h, storage_well_cut_h)
 
-    # Programmatic side labels (engraved): ONE/TWO.
-    piece = engrave_text_centered(
+    # Raised side labels: ONE/TWO.
+    piece = emboss_text_centered(
         piece,
         "ONE",
         p1_label_x + (p1_label_w / 2.0),
         p1_label_y + (p1_label_h / 2.0),
         side_label_text_size,
-        text_cut_h,
+        text_relief_h,
         90.0,
     )
-    piece = engrave_text_centered(
+    piece = emboss_text_centered(
         piece,
         "TWO",
         p2_label_x + (p2_label_w / 2.0),
         p2_label_y + (p2_label_h / 2.0),
         side_label_text_size,
-        text_cut_h,
+        text_relief_h,
         90.0,
     )
-
-    # Universal edge notches for optional bridge-key accessory
-    piece = add_bridge_notches(piece, score_d)
 
     return piece
 
 
 norm_crit_piece = build_norm_crit_module()
 score_piece = build_score_tracker()
-bridge_key_piece = build_bridge_key()
 
 
 # --- Place modules and assembled preview ---
@@ -362,9 +258,6 @@ norm2_obj.Shape = norm_crit_piece.copy()
 
 score_obj = doc.addObject("Part::Feature", "ScoreTrackerModule")
 score_obj.Shape = score_piece
-
-bridge_key_obj = doc.addObject("Part::Feature", "BridgeKeyAccessory")
-bridge_key_obj.Shape = bridge_key_piece
 
 # Assembled preview stack
 norm1_preview = norm_crit_piece.copy()
@@ -380,23 +273,16 @@ asm_obj.Shape = assembled
 # Move standalone modules for export convenience
 norm2_obj.Placement = App.Placement(App.Vector(module_width + 20.0, 0, 0), App.Rotation())
 score_obj.Placement = App.Placement(App.Vector(module_width + 20.0, norm_crit_d + 20.0, 0), App.Rotation())
-bridge_key_obj.Placement = App.Placement(App.Vector(module_width + 20.0, norm_crit_d + score_d + 30.0, 0), App.Rotation())
 
 # Console summary
-App.Console.PrintMessage("Built modular v4: NormCritModule (print 2x), ScoreTrackerModule, BridgeKeyAccessory, AssembledPreview\n")
+App.Console.PrintMessage("Built modular v4: NormCritModule (print 2x), ScoreTrackerModule, AssembledPreview\n")
 App.Console.PrintMessage(f"Module width: {module_width:.2f} mm\n")
 App.Console.PrintMessage(f"Norm/Crit cuts: 2 x ({norm_crit_inner_w:.2f} x {norm_crit_die_d:.2f}) mm\n")
-App.Console.PrintMessage("Norm/Crit labels are engraved programmatically (NORM top, CRIT bottom)\n")
-App.Console.PrintMessage("Main score lanes + center labels are centered on X axis\n")
-App.Console.PrintMessage("Center labels between score pairs are engraved: KILL, TAC, CRIT, CP, TEAM, TP/INI\n")
-App.Console.PrintMessage("Side labels are engraved: ONE (left), TWO (right)\n")
+App.Console.PrintMessage(f"All labels are embossed to {base_h + text_relief_h:.2f} mm total height\n")
+App.Console.PrintMessage("Main score lanes + raised center labels are centered on X axis\n")
+App.Console.PrintMessage("Raised center labels between score pairs: KILL, TAC, CRIT, CP, TEAM, TP/INI\n")
+App.Console.PrintMessage("Raised side labels: ONE (left), TWO (right)\n")
 App.Console.PrintMessage(f"Tracker footprint: {module_width:.2f} x {score_d:.2f} mm\n")
-App.Console.PrintMessage(
-    f"Bridge notches: underside on all four edges, {bridge_notch_len:.2f} x {bridge_notch_half_w:.2f} mm, {bridge_notch_cut_h:.2f} mm deep\n"
-)
-App.Console.PrintMessage(
-    f"Bridge key (H-shape): {bridge_key_len:.2f} x {bridge_key_w:.2f} x {bridge_key_h:.2f} mm, spine {bridge_key_spine_w:.2f} mm (print 4-8x)\n"
-)
 
 
 doc.recompute()
